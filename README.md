@@ -86,8 +86,6 @@ Chance level: 14.3 %. Confusion matrices (row-normalized, all folds pooled):
 - The scratch CNN is above 80 % recall on 5 of the 7 emotions (best: disgust, 85 %).
   The ResNet-18 is only better on sadness (89 % vs. 81 %).
 
-### RAVDESS (English)
-[ADD THE SAME TABLE WHEN THE ENGLISH MODELS ARE TRAINED]
 
 ## 4. Web app
 
