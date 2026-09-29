@@ -1,8 +1,9 @@
 # Voice Emotion Recognition with CNNs
 
-**Live app:** [LINK TO THE HUGGING FACE SPACE]  
+**Live app:** https://huggingface.co/spaces/jairvato99/voice-emotion-recognition  
+**Repository:** https://github.com/JairVasquezT/voice-emotion-recognition  
 **Course:** [COURSE NAME] — Prof. Juan José García Cárdenas  
-**Team:** Jair Anderson VASQUEZ TORRES · Lucas Emmanuel BARBOSA VASCONCELOS
+**Team:** [YOUR NAME] · [PARTNER NAME]
 
 Record your voice in the browser, see its log-mel spectrogram and let convolutional
 neural networks guess the emotion. Two CNNs are compared: one **trained from scratch**
@@ -68,7 +69,7 @@ Chance level: 14.3 %. Confusion matrices (row-normalized, all folds pooled):
 
 | CNN from scratch | ResNet-18 |
 |---|---|
-| ![](results/confusion_scratch.png) | ![](results/confusion_resnet18.png) |
+| ![Confusion matrix, CNN from scratch](results/scratch.png) | ![Confusion matrix, ResNet-18](results/resnet18.png) |
 
 **Observations**
 - The small CNN trained from scratch beats the frozen ResNet-18 by ~13 points and is more
@@ -76,8 +77,14 @@ Chance level: 14.3 %. Confusion matrices (row-normalized, all folds pooled):
 - The frozen ResNet-18 underfits: its training loss stays around 0.83 while the scratch
   CNN reaches 0.11. ImageNet features (edges, textures of photos) do not separate emotions
   in spectrograms well without fine-tuning.
-- [ADD WHAT YOU SEE IN THE CONFUSION MATRICES, e.g. which emotions get confused — typically
-  emotions with similar arousal: anger ↔ happiness, neutral ↔ boredom.]
+- **Happiness is the hardest emotion.** The scratch CNN recognizes it only 58 % of the time
+  and hears 31 % of happiness clips as anger; for the ResNet-18 it is worse (28 % correct,
+  59 % predicted as anger).
+- **Errors follow arousal (energy).** High-energy emotions are confused with each other
+  (anger ↔ happiness, fear → anger/happiness, 10 % each), and so are low-energy ones
+  (sadness → boredom 15 %, neutral → boredom 10 % in the scratch CNN).
+- The scratch CNN is above 80 % recall on 5 of the 7 emotions (best: disgust, 85 %).
+  The ResNet-18 is only better on sadness (89 % vs. 81 %).
 
 ### RAVDESS (English)
 [ADD THE SAME TABLE WHEN THE ENGLISH MODELS ARE TRAINED]
@@ -107,7 +114,7 @@ EmotionDetection.ipynb   feature extraction, cross-validation, final training
 export_onnx.py           .pt → web/models/*.onnx + manifest.json (with checks)
 app.py                   optional local version of the demo (Gradio)
 models/                  trained PyTorch checkpoints (.pt)
-results/                 metrics.json and confusion matrices
+results/                 metrics.json, scratch.png, resnet18.png (confusion matrices)
 web/                     the static web app (what is deployed)
   index.html, app.js, dsp.js
   models/                ONNX models + manifest.json
@@ -140,9 +147,8 @@ GitHub Pages, …).
 
 | Member | Contribution |
 |---|---|
-| [NAME 1] | [e.g. data preparation, CNN training and cross-validation] |
-| [NAME 2] | [e.g. English models (RAVDESS), results analysis] |
-| [NAME 3] | [e.g. web app, deployment, README] |
+| [PARTNER NAME] | Data preparation and log-mel features (EmoDB), design and training of both CNNs (from scratch and ResNet-18 transfer learning), speaker-independent cross-validation, results and confusion matrices; English models (RAVDESS). |
+| [YOUR NAME] | Web application (recording, live spectrogram, waveform and log-mel display, model comparison, EN/FR/ES interface), port of the preprocessing to JavaScript, export of the models to ONNX with verification, deployment on Hugging Face, repository and README. |
 
 [OPTIONAL — if your course asks you to declare AI assistance, add one line here,
 e.g. "We used an AI assistant (Claude) to help write the web app and this README."]
