@@ -1,0 +1,158 @@
+# Voice Emotion Recognition with CNNs
+
+**Live app:** [LINK TO THE HUGGING FACE SPACE]  
+**Course:** [COURSE NAME] — Prof. Juan José García Cárdenas  
+**Team:** [NAME 1] · [NAME 2] · [NAME 3]
+
+Record your voice in the browser, see its log-mel spectrogram and let convolutional
+neural networks guess the emotion. Two CNNs are compared: one **trained from scratch**
+and one using **transfer learning** (ResNet-18 pretrained on ImageNet). All results are
+measured on **speakers the models never heard during training**.
+
+---
+
+## 1. Data
+
+| Corpus | Language | Clips | Speakers | Emotions | Status |
+|---|---|---|---|---|---|
+| [EmoDB](http://database.syntheticspeech.de/) | German | 535 | 10 (5 ♂, 5 ♀) | anger, boredom, disgust, fear, happiness, neutral, sadness | ✅ trained |
+| [RAVDESS](https://zenodo.org/records/1188976) | English | 1,440 | 24 (12 ♂, 12 ♀) | neutral, calm, happy, sad, angry, fearful, disgust, surprised | [🔄 IN PROGRESS / ✅] |
+
+EmoDB is unbalanced (127 anger clips vs. 46 disgust), so the loss uses class weights and
+the metric is the **unweighted average recall (UAR)**, i.e. the mean recall over classes
+(chance level with 7 classes = 14.3 %).
+
+The audio corpora are **not** included in this repository (license and size); download
+them and place EmoDB's WAV files in `DB/archive/wav/`.
+
+## 2. Method
+
+### Features
+1. Load at **16 kHz mono**, normalize by the peak amplitude.
+2. Keep the **central 3 s** (zero-pad shorter clips).
+3. **Log-mel spectrogram**: 25 ms windows (400 samples, FFT 512), 10 ms hop, **64 mel bands**
+   → an image of **64 × 301**.
+4. Standardize with the mean and standard deviation of the **training speakers only**.
+
+### Models
+| | Model 1 — CNN from scratch | Model 2 — Transfer learning |
+|---|---|---|
+| Architecture | 4 blocks: 2 × (3×3 conv + BatchNorm + ReLU) + 2×2 max-pool; 32 → 64 → 128 → 256 channels; global average pooling → dropout 0.3 → linear | ResNet-18 pretrained on ImageNet, spectrogram copied to 3 channels |
+| Trainable parameters | ~1.2 M (all) | ~3.6 k (only the new classification layer; backbone and BatchNorm frozen) |
+
+### Training
+- Adam (lr 1e-3, weight decay 1e-4), cosine learning-rate schedule, 40 epochs, batch 32.
+- Class-weighted cross-entropy.
+- Data augmentation: random circular time shift (±0.3 s) + **SpecAugment** (one frequency mask of up to
+  8 bands and one time mask of up to 30 frames).
+
+### Evaluation: speaker-independent cross-validation
+Splitting clips at random puts the same actor in training and test, so a network can
+recognize the *person* instead of the *emotion*. We never let a speaker appear in both:
+**5 folds, each one leaves out 1 male + 1 female speaker** for testing
+(03+08, 10+09, 11+13, 12+14, 15+16). Every number below is on unseen voices.
+The final models used by the app are then retrained on all 10 speakers.
+
+## 3. Results (EmoDB, unseen speakers)
+
+| Fold (test speakers) | CNN from scratch | ResNet-18 (transfer) |
+|---|---|---|
+| 1 (03, 08) | 75.3 % | 61.5 % |
+| 2 (10, 09) | 81.8 % | 62.0 % |
+| 3 (11, 13) | 74.8 % | 54.2 % |
+| 4 (12, 14) | 78.5 % | 75.6 % |
+| 5 (15, 16) | 74.3 % | 64.3 % |
+| **Mean UAR ± std** | **76.9 % ± 2.8** | **63.5 % ± 6.9** |
+
+Chance level: 14.3 %. Confusion matrices (row-normalized, all folds pooled):
+
+| CNN from scratch | ResNet-18 |
+|---|---|
+| ![](results/confusion_scratch.png) | ![](results/confusion_resnet18.png) |
+
+**Observations**
+- The small CNN trained from scratch beats the frozen ResNet-18 by ~13 points and is more
+  stable across folds.
+- The frozen ResNet-18 underfits: its training loss stays around 0.83 while the scratch
+  CNN reaches 0.11. ImageNet features (edges, textures of photos) do not separate emotions
+  in spectrograms well without fine-tuning.
+- [ADD WHAT YOU SEE IN THE CONFUSION MATRICES, e.g. which emotions get confused — typically
+  emotions with similar arousal: anger ↔ happiness, neutral ↔ boredom.]
+
+### RAVDESS (English)
+[ADD THE SAME TABLE WHEN THE ENGLISH MODELS ARE TRAINED]
+
+## 4. Web app
+
+The app is a **static web page**: the trained PyTorch models are exported to **ONNX** and
+run **inside the user's browser** with ONNX Runtime Web, so no server is needed and the
+voice is never uploaded.
+
+- Record from the microphone (with a live spectrogram) or upload a file.
+- Shows the trimmed waveform, the 3 s window analyzed and the exact 64 × 301 log-mel
+  spectrogram the CNN receives.
+- Choose which models to compare (grouped by training corpus); each one shows the
+  probability of every emotion and its cross-validated UAR.
+- Interface in English, French and Spanish.
+
+The preprocessing (silence trimming, peak normalization, STFT, mel filterbank, dB
+conversion) was ported to JavaScript (`web/dsp.js`). `export_onnx.py` checks that the
+browser version matches librosa (max. error < 0.05 dB) and that each ONNX model gives the
+same output as PyTorch.
+
+## 5. Repository structure
+
+```
+EmotionDetection.ipynb   feature extraction, cross-validation, final training
+export_onnx.py           .pt → web/models/*.onnx + manifest.json (with checks)
+app.py                   optional local version of the demo (Gradio)
+models/                  trained PyTorch checkpoints (.pt)
+results/                 metrics.json and confusion matrices
+web/                     the static web app (what is deployed)
+  index.html, app.js, dsp.js
+  models/                ONNX models + manifest.json
+```
+
+## 6. How to reproduce
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+# 1. put EmoDB in DB/archive/wav/ and run EmotionDetection.ipynb
+# 2. export the models for the browser
+python export_onnx.py
+# 3. try the app locally (the microphone works on localhost)
+cd web && python -m http.server 8000     # open http://localhost:8000
+```
+
+To deploy, upload the **contents of `web/`** to a static host (Hugging Face Static Space,
+GitHub Pages, …).
+
+## 7. Limitations
+
+- Each model is trained on a single **acted** corpus: actors exaggerate emotions and record
+  in a studio. Spontaneous speech, other languages and other microphones are harder, so
+  real-world accuracy is lower than the UAR reported here.
+- EmoDB has only 10 speakers, so each fold tests on 2 people and results vary between folds.
+- Only the central 3 seconds of each recording are analyzed.
+
+## 8. Who did what
+
+| Member | Contribution |
+|---|---|
+| [NAME 1] | [e.g. data preparation, CNN training and cross-validation] |
+| [NAME 2] | [e.g. English models (RAVDESS), results analysis] |
+| [NAME 3] | [e.g. web app, deployment, README] |
+
+[OPTIONAL — if your course asks you to declare AI assistance, add one line here,
+e.g. "We used an AI assistant (Claude) to help write the web app and this README."]
+
+## References
+
+- F. Burkhardt et al., "A database of German emotional speech," *Interspeech*, 2005 (EmoDB).
+- S. R. Livingstone and F. A. Russo, "The Ryerson Audio-Visual Database of Emotional Speech
+  and Song (RAVDESS)," *PLoS ONE*, 2018.
+- K. He et al., "Deep residual learning for image recognition," *CVPR*, 2016.
+- D. S. Park et al., "SpecAugment: a simple data augmentation method for automatic speech
+  recognition," *Interspeech*, 2019.
+- Course material: J. J. García Cárdenas, "Can a machine hear how you feel?", 2026.

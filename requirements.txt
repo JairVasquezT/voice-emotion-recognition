@@ -1,0 +1,14 @@
+# training (notebook)
+torch
+torchvision
+librosa
+soundfile
+numpy
+scikit-learn
+matplotlib
+# export to the browser (export_onnx.py)
+onnx
+onnxscript
+onnxruntime
+# optional local demo (app.py)
+gradio

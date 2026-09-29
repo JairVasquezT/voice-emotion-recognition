@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Emotion Recognition</title>
+<meta name="description" content="Record your voice, see its spectrogram and let convolutional neural networks guess the emotion.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>">
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #ffffff; --fg: #1d1d1f; --muted: #6b6b72; --line: #e3e1dc;
+    --accent: #e8500f; --accent-soft: rgba(232, 80, 15, .14); --accent-ink: #ffffff;
+    --wave: #3b3b44; --bar-bg: #efede8; --ok: #1f7a4d; --warn: #9a6200; --err: #b3261e;
+    --radius: 16px; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f13; --card: #17171d; --fg: #ececf1; --muted: #9a9aa6; --line: #2a2a33;
+      --accent: #ff6a2b; --accent-soft: rgba(255, 106, 43, .18); --wave: #c9c9d3; --bar-bg: #24242c;
+      --ok: #5fd39a; --warn: #f0b85a; --err: #ff8a80; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 28px 0 20px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { font-size: 30px; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; background: var(--accent-soft); }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0; letter-spacing: -.01em; }
+  h2 { font-size: 17px; margin: 0 0 6px; }
+  h3 { font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--muted); }
+  p { margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .lang { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .lang button {
+    border: 0; background: transparent; color: var(--muted); font: 600 13px system-ui, sans-serif;
+    padding: 6px 14px; border-radius: 999px; cursor: pointer;
+  }
+  .lang button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .grid .card { margin-bottom: 0; }
+  main > .card:first-of-type { margin-top: 16px; }
+  .rec-row { display: flex; align-items: center; gap: 14px; margin: 14px 0; flex-wrap: wrap; }
+  .rec-btn {
+    display: inline-flex; align-items: center; gap: 10px; border: 0; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink); font: 600 16px system-ui, sans-serif;
+    padding: 12px 24px 12px 18px; border-radius: 999px; transition: transform .1s, opacity .2s;
+  }
+  .rec-btn:active { transform: scale(.97); }
+  .rec-btn:disabled { opacity: .45; cursor: default; }
+  .rec-btn .dot { width: 14px; height: 14px; border-radius: 50%; background: currentColor; }
+  .rec-btn.recording { background: var(--fg); color: var(--bg); }
+  .rec-btn.recording .dot { border-radius: 3px; background: var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .rec-btn.recording .dot { animation: none; } }
+  .timer { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+  .live-box { position: relative; }
+  .live { display: block; width: 100%; height: 120px; border-radius: 10px; background: #000004; }
+  .live-label { position: absolute; left: 10px; top: 8px; font-size: 11px; color: rgba(255,255,255,.6); letter-spacing: .02em; }
+  .upload { display: inline-block; margin-top: 12px; color: var(--accent); cursor: pointer; font-weight: 600; font-size: 14px; }
+  .upload:hover { text-decoration: underline; }
+  audio { width: 100%; margin-top: 12px; }
+  .status { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: 14px; background: var(--bar-bg); }
+  .status.warn { color: var(--warn); }
+  .status.error { color: var(--err); }
+  .empty { display: grid; place-items: center; min-height: 300px; color: var(--muted); text-align: center; border: 1px dashed var(--line); border-radius: 12px; padding: 16px; }
+  canvas.wave { display: block; width: 100%; height: 110px; }
+  canvas.spec { display: block; width: 100%; height: 240px; }
+  .models-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  #loadState { font-size: 13px; color: var(--muted); }
+  .group { margin-top: 12px; }
+  .group-title { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid var(--line);
+    border-radius: 999px; cursor: pointer; font-size: 14px; user-select: none; background: var(--card);
+  }
+  .chip:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .chip input { accent-color: var(--accent); margin: 0; }
+  .chip-uar, .chip-size { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .agreement { margin: 16px 0 0; font-weight: 600; min-height: 1.5em; }
+  .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+  .result { border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .result header { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .result h3 { margin: 0; font-size: 15px; color: var(--fg); }
+  .result header p { margin: 0; }
+  .pill { font-size: 12px; font-weight: 600; white-space: nowrap; padding: 3px 8px; border-radius: 999px; background: var(--bar-bg); font-variant-numeric: tabular-nums; }
+  .top-pred { display: flex; align-items: center; gap: 12px; margin: 14px 0 10px; }
+  .big-emoji { font-size: 38px; line-height: 1; }
+  .pred-name { font-size: 20px; font-weight: 700; }
+  .bars { display: grid; gap: 5px; }
+  .bar-row { display: grid; grid-template-columns: 9.5em 1fr 3.2em; align-items: center; gap: 8px; font-size: 13px; }
+  .bar-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar { height: 8px; background: var(--bar-bg); border-radius: 999px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: var(--muted); border-radius: 999px; transition: width .4s; }
+  .bar-row.top .bar > span { background: var(--accent); }
+  .bar-row.top { font-weight: 600; }
+  .bar-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .placeholder { min-height: 120px; display: flex; align-items: center; gap: 8px; margin: 0; }
+  .error-text { color: var(--err); }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .about p { max-width: 80ch; }
+  footer { padding: 8px 0 40px; color: var(--muted); font-size: 13px; display: flex; gap: 12px; flex-wrap: wrap; }
+  footer a { color: var(--accent); }
+  @media (max-width: 520px) {
+    h1 { font-size: 21px; }
+    .bar-row { grid-template-columns: 7.5em 1fr 3em; }
+    canvas.spec { height: 200px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">🎙️</div>
+      <div>
+        <h1 data-i18n="title">What emotion is in your voice?</h1>
+        <p class="muted" data-i18n="subtitle"></p>
+      </div>
+    </div>
+    <div class="lang" role="group" aria-label="Language / Langue / Idioma">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="fr">FR</button>
+      <button type="button" data-lang="es">ES</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="grid">
+      <div class="card">
+        <h2 data-i18n="recordTitle"></h2>
+        <p class="muted small" data-i18n="recordHint"></p>
+        <div class="rec-row">
+          <button id="recBtn" class="rec-btn" type="button" disabled><span class="dot" aria-hidden="true"></span><span id="recLabel">Record</span></button>
+          <span id="timer" class="timer" aria-live="polite"></span>
+        </div>
+        <div class="live-box">
+          <canvas id="live" class="live" aria-hidden="true"></canvas>
+          <span id="liveLabel" class="live-label"></span>
+        </div>
+        <label class="upload"><input id="file" type="file" accept="audio/*" hidden disabled><span data-i18n="upload"></span></label>
+        <audio id="player" controls hidden></audio>
+        <div id="status" class="status" role="status" hidden></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="signalTitle"></h2>
+        <div id="signalEmpty" class="empty" data-i18n="signalEmpty"></div>
+        <div id="signalPlots" hidden>
+          <h3 data-i18n="waveTitle"></h3>
+          <canvas id="wave" class="wave" role="img" aria-label="waveform"></canvas>
+          <h3 data-i18n="specTitle"></h3>
+          <canvas id="spec" class="spec" role="img" aria-label="log-mel spectrogram"></canvas>
+          <p id="info" class="muted small"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="models-head">
+        <h2 data-i18n="modelsTitle"></h2>
+        <span id="loadState"></span>
+      </div>
+      <p class="muted small" data-i18n="modelsHint"></p>
+      <div id="picker"></div>
+      <p id="agreement" class="agreement" aria-live="polite"></p>
+      <div id="results" class="results"></div>
+    </section>
+
+    <section class="card about">
+      <h2 data-i18n="aboutTitle"></h2>
+      <p id="aboutPipeline"></p>
+      <p id="aboutCaveat"></p>
+      <p class="muted small" data-i18n="privacy"></p>
+    </section>
+  </main>
+
+  <footer>
+    <span data-i18n="footer"></span>
+    <a id="repo" hidden target="_blank" rel="noopener">GitHub</a>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.js"></script>
+<script src="dsp.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

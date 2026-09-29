@@ -1,0 +1,12 @@
+# Datos: no subir el corpus (licencia y tamaño)
+DB/
+*.npz
+*.zip
+
+# Entorno y temporales de Python
+.venv/
+venv/
+__pycache__/
+.ipynb_checkpoints/
+flagged/
+.gradio/
