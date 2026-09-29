@@ -3,7 +3,7 @@
 **Live app:** https://huggingface.co/spaces/jairvato99/voice-emotion-recognition  
 **Repository:** https://github.com/JairVasquezT/voice-emotion-recognition  
 **Course:** Apprentissage pour la robotique — Prof. Adriana Tapus - Prof. Juan José García Cárdenas  
-**Team:** [YOUR NAME] · [PARTNER NAME]
+**Team:** Jair Anderson VASQUEZ TORRES · Lucas Emanuel BARBOSA VASCONCELOS
 
 Record your voice in the browser, see its log-mel spectrogram and let convolutional
 neural networks guess the emotion. Two CNNs are compared: one **trained from scratch**
