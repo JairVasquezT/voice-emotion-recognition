@@ -2,7 +2,7 @@
 
 **Live app:** https://huggingface.co/spaces/jairvato99/voice-emotion-recognition  
 **Repository:** https://github.com/JairVasquezT/voice-emotion-recognition  
-**Course:** [COURSE NAME] — Prof. Juan José García Cárdenas  
+**Course:** Apprentissage pour la robotique — Prof. Adriana Tapus - Prof. Juan José García Cárdenas  
 **Team:** [YOUR NAME] · [PARTNER NAME]
 
 Record your voice in the browser, see its log-mel spectrogram and let convolutional
@@ -147,18 +147,9 @@ GitHub Pages, …).
 
 | Member | Contribution |
 |---|---|
-| [PARTNER NAME] | Data preparation and log-mel features (EmoDB), design and training of both CNNs (from scratch and ResNet-18 transfer learning), speaker-independent cross-validation, results and confusion matrices; English models (RAVDESS). |
-| [YOUR NAME] | Web application (recording, live spectrogram, waveform and log-mel display, model comparison, EN/FR/ES interface), port of the preprocessing to JavaScript, export of the models to ONNX with verification, deployment on Hugging Face, repository and README. |
-
-[OPTIONAL — if your course asks you to declare AI assistance, add one line here,
-e.g. "We used an AI assistant (Claude) to help write the web app and this README."]
+| Lucas Emanuel BARBOSA VASCONCELOS | Data preparation and log-mel features (EmoDB), design and training of both CNNs (from scratch and ResNet-18 transfer learning), speaker-independent cross-validation, results and confusion matrices; English models (RAVDESS). |
+| Jair Anderson VASQUEZ TORRES | Web application (recording, live spectrogram, waveform and log-mel display, model comparison, EN/FR/ES interface), port of the preprocessing to JavaScript, export of the models to ONNX with verification, deployment on Hugging Face, repository and README. |
 
 ## References
 
-- F. Burkhardt et al., "A database of German emotional speech," *Interspeech*, 2005 (EmoDB).
-- S. R. Livingstone and F. A. Russo, "The Ryerson Audio-Visual Database of Emotional Speech
-  and Song (RAVDESS)," *PLoS ONE*, 2018.
-- K. He et al., "Deep residual learning for image recognition," *CVPR*, 2016.
-- D. S. Park et al., "SpecAugment: a simple data augmentation method for automatic speech
-  recognition," *Interspeech*, 2019.
 - Course material: J. J. García Cárdenas, "Can a machine hear how you feel?", 2026.
