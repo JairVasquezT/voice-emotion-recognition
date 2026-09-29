@@ -2,7 +2,7 @@
 
 **Live app:** [LINK TO THE HUGGING FACE SPACE]  
 **Course:** [COURSE NAME] — Prof. Juan José García Cárdenas  
-**Team:** [NAME 1] · [NAME 2] · [NAME 3]
+**Team:** Jair Anderson VASQUEZ TORRES · Lucas Emmanuel BARBOSA VASCONCELOS
 
 Record your voice in the browser, see its log-mel spectrogram and let convolutional
 neural networks guess the emotion. Two CNNs are compared: one **trained from scratch**
