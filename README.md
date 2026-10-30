@@ -17,7 +17,7 @@ measured on **speakers the models never heard during training**.
 | Corpus | Language | Clips | Speakers | Emotions | Status |
 |---|---|---|---|---|---|
 | [EmoDB](http://database.syntheticspeech.de/) | German | 535 | 10 (5 ♂, 5 ♀) | anger, boredom, disgust, fear, happiness, neutral, sadness | ✅ trained |
-| [RAVDESS](https://zenodo.org/records/1188976) | English | 1,440 | 24 (12 ♂, 12 ♀) | neutral, calm, happy, sad, angry, fearful, disgust, surprised | [🔄 IN PROGRESS / ✅] |
+| [RAVDESS](https://zenodo.org/records/1188976) | English | 1,440 | 24 (12 ♂, 12 ♀) | neutral (+ calm), happy, sad, angry, fearful, disgust, surprised | ✅ trained (`entrenar_ravdess.py`) |
 
 EmoDB is unbalanced (127 anger clips vs. 46 disgust), so the loss uses class weights and
 the metric is the **unweighted average recall (UAR)**, i.e. the mean recall over classes
@@ -86,6 +86,21 @@ Chance level: 14.3 %. Confusion matrices (row-normalized, all folds pooled):
 - The scratch CNN is above 80 % recall on 5 of the 7 emotions (best: disgust, 85 %).
   The ResNet-18 is only better on sadness (89 % vs. 81 %).
 
+
+## 3b. Results (RAVDESS, English, unseen speakers)
+
+Same features, model and training as EmoDB (scratch CNN), run with
+`python entrenar_ravdess.py --wav-dir DB/ravdess/wav` (RAVDESS speech zip unpacked in
+`DB/ravdess/wav/`, ~25 min on a GTX 1050 Ti). "calm" is merged into "neutral", giving the same
+7 classes as FER-2013. 6 folds of 4 actors (2 ♂ + 2 ♀) left out each time.
+
+| Fold (test actors) | 01-04 | 05-08 | 09-12 | 13-16 | 17-20 | 21-24 | **Mean UAR ± std** |
+|---|---|---|---|---|---|---|---|
+| CNN from scratch | 73.5 % | 78.6 % | 61.6 % | 66.5 % | 70.4 % | 71.9 % | **70.4 % ± 5.3** |
+
+Recall per class: angry 85 %, neutral 83 %, fearful 73 %, surprised 73 %, disgust 69 %,
+happy 61 %, sad 48 % (sadness is mostly heard as neutral, 24 %). Confusion matrix:
+`results/ravdess/scratch.png`. The final model (all 24 actors) is `models/ravdess/scratch.pt`.
 
 ## 4. Web app
 
